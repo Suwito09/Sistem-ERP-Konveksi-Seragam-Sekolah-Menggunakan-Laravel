@@ -34,6 +34,7 @@ use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\KomponenController;
 use App\Http\Controllers\BiayaProdukController;
+use App\Http\Controllers\CompanySettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -105,6 +106,10 @@ Route::prefix('/')
         Route::get('/pesanan/export_pdf', [PesananController::class, 'export_pdf'])->name('pesanan.export_pdf')->middleware(['auth', 'verified', 'role_or_permission:list pesanan']);
         Route::get('/pesanan/invoice_pdf/{invoice_id}', [PesananController::class, 'invoice_pdf'])->name('pesanan.invoice_pdf')->middleware(['auth', 'verified', 'role_or_permission:view pesanan']);
         Route::get('/pesanan/invoice_print/{invoice_id}', [PesananController::class, 'invoice_print'])->name('pesanan.invoice_print')->middleware(['auth', 'verified', 'role_or_permission:view pesanan']);
+
+        // pesanan lunas dan belum lunas
+        Route::get('/pesanan/lunas', [PesananController::class, 'lunas'])->name('pesanan.lunas')->middleware(['auth', 'verified', 'role_or_permission:list pesanan']);
+        Route::get('/pesanan/belum-lunas', [PesananController::class, 'belumLunas'])->name('pesanan.belum-lunas')->middleware(['auth', 'verified', 'role_or_permission:list pesanan']);
 
         // export roles
         Route::get('/roles/export_excel', [RoleController::class, 'export_excel'])->name('roles.export_excel')->middleware(['auth', 'verified', 'role_or_permission:list roles']);
@@ -193,6 +198,13 @@ Route::prefix('/')
         Route::resource('jenis_pengeluaran', JenisPengeluaranController::class);
         Route::resource('pengeluaran', PengeluaranController::class);
         Route::resource('kategoris', KategoriController::class);
+        
+        // Routes untuk pengaturan perusahaan
+        Route::get('/company-settings', [CompanySettingController::class, 'index'])->name('company-settings.index')->middleware(['auth', 'verified', 'role_or_permission:list admin']);
+        Route::post('/company-settings', [CompanySettingController::class, 'update'])->name('company-settings.update')->middleware(['auth', 'verified', 'role_or_permission:update admin']);
+        Route::delete('/company-settings/signature', [CompanySettingController::class, 'deleteSignature'])->name('company-settings.delete-signature')->middleware(['auth', 'verified', 'role_or_permission:update admin']);
+        Route::delete('/company-settings/stamp', [CompanySettingController::class, 'deleteStamp'])->name('company-settings.delete-stamp')->middleware(['auth', 'verified', 'role_or_permission:update admin']);
+        Route::delete('/company-settings/logo', [CompanySettingController::class, 'deleteLogo'])->name('company-settings.delete-logo')->middleware(['auth', 'verified', 'role_or_permission:update admin']);
         
         // Routes untuk fitur biaya - Komponen
         Route::resource('komponen', KomponenController::class);

@@ -138,13 +138,19 @@
         $nama_pegawai = $penarikan_gaji->user->nama ?? 'N/A';
         $tanggal_mulai = $penarikan_gaji->mulai_tanggal ?? now();
         $tanggal_akhir = $penarikan_gaji->akhir_tanggal ?? now();
+        
+        // Get company settings
+        $companySetting = $companySetting ?? \App\Models\CompanySetting::getInstance();
     @endphp
 
     <div class="header">
-        @if(file_exists(public_path('favicon.png')))
+        @if($companySetting->logo_url)
+        <img src="{{ $companySetting->logo_url }}" alt="Logo">
+        @elseif(file_exists(public_path('favicon.png')))
         <img src="{{ asset('favicon.png') }}" alt="Logo">
         @endif
         <div class="title">SLIP GAJI</div>
+        <div class="subtitle">{{ $companySetting->company_name }}</div>
         <div class="subtitle">{{ date('d/m/Y', strtotime($tanggal_mulai)) }} - {{ date('d/m/Y', strtotime($tanggal_akhir)) }}</div>
     </div>
 
@@ -197,13 +203,24 @@
         <div style="border-top:1px dashed #000; padding-top:8px; margin-top:8px;">
             <div class="signature-box">
                 <div style="margin-bottom:3px;">Mengetahui,</div>
-                @if(file_exists(public_path('images/ttd.png')))
+                
+                {{-- Tanda Tangan dari Company Settings --}}
+                @if($companySetting->signature_url)
+                <img src="{{ $companySetting->signature_url }}" alt="TTD">
+                @elseif(file_exists(public_path('images/ttd.png')))
                 <img src="{{ asset('images/ttd.png') }}" alt="TTD">
                 @else
                 <div style="height:40px; margin:5px 0;"></div>
                 @endif
+                
+                {{-- Stempel dari Company Settings --}}
+                @if($companySetting->stamp_url)
+                <img src="{{ $companySetting->stamp_url }}" alt="Stempel" style="max-width: 50px; height: auto; margin: 5px 0;">
+                @endif
+                
                 <div style="border-top:1px solid #000; padding-top:3px; font-weight:bold;">
-                    Owner/Pimpinan
+                    {{ $companySetting->owner_name }}<br>
+                    <span style="font-weight:normal; font-size: 9px;">{{ $companySetting->owner_position }}</span>
                 </div>
             </div>
         </div>

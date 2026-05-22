@@ -94,6 +94,19 @@ class PesananController extends Controller
         // product list (for admin dropdown)
         $produks = Produk::orderBy('nama_produk')->pluck('nama_produk', 'id');
 
+        // Get statistics
+        $total_lunas = Invoice::where('tagihan_sisa', 0)
+            ->when(auth()->user()->roles->contains('name', 'Sales'), function ($q) {
+                $q->where('customer_id', Auth::user()->id);
+            })
+            ->count();
+        
+        $total_belum_lunas = Invoice::where('tagihan_sisa', '>', 0)
+            ->when(auth()->user()->roles->contains('name', 'Sales'), function ($q) {
+                $q->where('customer_id', Auth::user()->id);
+            })
+            ->count();
+
         return view('transaksi.invoice.index', compact(
             'invoices', 
             'search', 
@@ -103,7 +116,199 @@ class PesananController extends Controller
             'start_date', 
             'end_date',
             'produks',
-            'product_id'
+            'product_id',
+            'total_lunas',
+            'total_belum_lunas'
+        ));
+    }
+
+    /**
+     * Display a listing of invoices that are fully paid (lunas).
+     */
+    public function lunas(Request $request): View|RedirectResponse
+    {
+        $this->authorize('view-any', Invoice::class);
+
+        $paginate = max(10, intval($request->input('paginate', 10)));
+        $search = $request->get('search', '');
+        $sortBy = $request->get('sort_by', 'id');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        $start_date = $request->input('start_date');
+        $end_date = $request->input('end_date');
+        $customer_input = $request->input('customer_input');
+        $product_id = $request->input('product_id');
+
+        // Validate date range
+        if ($start_date && $end_date && $start_date > $end_date) {
+            return redirect()->back()
+                ->withErrors(['end_date' => 'Tanggal selesai tidak boleh lebih kecil dari tanggal mulai.'])
+                ->with('error', 'Rentang tanggal tidak valid!');
+        }
+
+        $customers = User::role('Sales')->pluck('nama', 'id');
+
+        $invoices = Invoice::query()
+            ->where('tagihan_sisa', 0) // Filter untuk yang sudah lunas
+            ->when($customer_input, function ($query) use ($customer_input) {
+                $query->where('customer_id', $customer_input);
+            })
+            ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
+                $query->whereDate('invoices.updated_at', '>=', $start_date)
+                    ->whereDate('invoices.updated_at', '<=', $end_date);
+            })
+            ->when($search, function ($query, $search) {
+                return $query->whereHas('user', function ($query) use ($search) {
+                    $query->where('nama', 'LIKE', "%{$search}%");
+                })->orWhere('invoice', 'LIKE', "%{$search}%");
+            })
+            ->with('user');
+
+        // Filter by product (if provided)
+        if ($product_id) {
+            $invoices->whereHas('pesanans', function ($q) use ($product_id) {
+                $q->where('produk_id', $product_id);
+            });
+        }
+
+        // Apply sorting
+        if ($sortBy === 'customer') {
+            $invoices = $invoices->join('users', 'invoices.customer_id', '=', 'users.id')
+                ->orderBy('users.nama', $sortDirection)
+                ->select('invoices.*');
+        } else {
+            $invoices = $invoices->orderBy('invoices.' . $sortBy, $sortDirection);
+        }
+
+        // Filter for Sales role
+        if (auth()->user()->roles->contains('name', 'Sales')) {
+            $invoices->where('customer_id', Auth::user()->id);
+        }
+
+        $invoices = $invoices->paginate($paginate)->appends($request->query());
+
+        // product list (for admin dropdown)
+        $produks = Produk::orderBy('nama_produk')->pluck('nama_produk', 'id');
+
+        // Get statistics
+        $total_semua = Invoice::query()
+            ->when(auth()->user()->roles->contains('name', 'Sales'), function ($q) {
+                $q->where('customer_id', Auth::user()->id);
+            })
+            ->count();
+        
+        $total_belum_lunas = Invoice::where('tagihan_sisa', '>', 0)
+            ->when(auth()->user()->roles->contains('name', 'Sales'), function ($q) {
+                $q->where('customer_id', Auth::user()->id);
+            })
+            ->count();
+
+        return view('transaksi.invoice.lunas', compact(
+            'invoices', 
+            'search', 
+            'customers', 
+            'sortBy', 
+            'sortDirection', 
+            'start_date', 
+            'end_date',
+            'produks',
+            'product_id',
+            'total_semua',
+            'total_belum_lunas'
+        ));
+    }
+
+    /**
+     * Display a listing of invoices that are not fully paid (belum lunas).
+     */
+    public function belumLunas(Request $request): View|RedirectResponse
+    {
+        $this->authorize('view-any', Invoice::class);
+
+        $paginate = max(10, intval($request->input('paginate', 10)));
+        $search = $request->get('search', '');
+        $sortBy = $request->get('sort_by', 'id');
+        $sortDirection = $request->get('sort_direction', 'desc');
+        $start_date = $request->input('start_date');
+        $end_date = $request->input('end_date');
+        $customer_input = $request->input('customer_input');
+        $product_id = $request->input('product_id');
+
+        // Validate date range
+        if ($start_date && $end_date && $start_date > $end_date) {
+            return redirect()->back()
+                ->withErrors(['end_date' => 'Tanggal selesai tidak boleh lebih kecil dari tanggal mulai.'])
+                ->with('error', 'Rentang tanggal tidak valid!');
+        }
+
+        $customers = User::role('Sales')->pluck('nama', 'id');
+
+        $invoices = Invoice::query()
+            ->where('tagihan_sisa', '>', 0) // Filter untuk yang belum lunas
+            ->when($customer_input, function ($query) use ($customer_input) {
+                $query->where('customer_id', $customer_input);
+            })
+            ->when($start_date && $end_date, function ($query) use ($start_date, $end_date) {
+                $query->whereDate('invoices.updated_at', '>=', $start_date)
+                    ->whereDate('invoices.updated_at', '<=', $end_date);
+            })
+            ->when($search, function ($query, $search) {
+                return $query->whereHas('user', function ($query) use ($search) {
+                    $query->where('nama', 'LIKE', "%{$search}%");
+                })->orWhere('invoice', 'LIKE', "%{$search}%");
+            })
+            ->with('user');
+
+        // Filter by product (if provided)
+        if ($product_id) {
+            $invoices->whereHas('pesanans', function ($q) use ($product_id) {
+                $q->where('produk_id', $product_id);
+            });
+        }
+
+        // Apply sorting
+        if ($sortBy === 'customer') {
+            $invoices = $invoices->join('users', 'invoices.customer_id', '=', 'users.id')
+                ->orderBy('users.nama', $sortDirection)
+                ->select('invoices.*');
+        } else {
+            $invoices = $invoices->orderBy('invoices.' . $sortBy, $sortDirection);
+        }
+
+        // Filter for Sales role
+        if (auth()->user()->roles->contains('name', 'Sales')) {
+            $invoices->where('customer_id', Auth::user()->id);
+        }
+
+        $invoices = $invoices->paginate($paginate)->appends($request->query());
+
+        // product list (for admin dropdown)
+        $produks = Produk::orderBy('nama_produk')->pluck('nama_produk', 'id');
+
+        // Get statistics
+        $total_semua = Invoice::query()
+            ->when(auth()->user()->roles->contains('name', 'Sales'), function ($q) {
+                $q->where('customer_id', Auth::user()->id);
+            })
+            ->count();
+        
+        $total_lunas = Invoice::where('tagihan_sisa', 0)
+            ->when(auth()->user()->roles->contains('name', 'Sales'), function ($q) {
+                $q->where('customer_id', Auth::user()->id);
+            })
+            ->count();
+
+        return view('transaksi.invoice.belum_lunas', compact(
+            'invoices', 
+            'search', 
+            'customers', 
+            'sortBy', 
+            'sortDirection', 
+            'start_date', 
+            'end_date',
+            'produks',
+            'product_id',
+            'total_semua',
+            'total_lunas'
         ));
     }
 
@@ -220,6 +425,11 @@ class PesananController extends Controller
     public function edit(Request $request, Invoice $invoice): View
     {
         $this->authorize('update', $invoice);
+        
+        // Prevent editing paid invoices
+        if ($invoice->tagihan_sisa == 0) {
+            abort(403, 'Invoice yang sudah lunas tidak dapat di-edit. Invoice lunas bersifat final untuk integritas data.');
+        }
 
         $pesanans = Pesanan::where('invoice_id', $invoice->id)
             ->with(['produk'])
@@ -234,10 +444,27 @@ class PesananController extends Controller
     public function update(Request $request, Invoice $invoice): RedirectResponse
     {
         $this->authorize('update', $invoice);
+        
+        // Prevent updating paid invoices
+        if ($invoice->tagihan_sisa == 0) {
+            return redirect()
+                ->route('pesanan.lunas')
+                ->with('error', 'Invoice yang sudah lunas tidak dapat di-edit. Invoice lunas bersifat final untuk integritas data.');
+        }
 
         $validatedData = $request->validate([
-            'jumlah_bayar' => 'required|numeric|min:0',
+            'jumlah_bayar' => 'nullable|numeric|min:1',
+        ], [
+            'jumlah_bayar.numeric' => 'Jumlah bayar harus berupa angka',
+            'jumlah_bayar.min' => 'Jumlah bayar minimal Rp 1',
         ]);
+
+        // Jika tidak ada jumlah bayar, langsung redirect ke pesanan belum lunas
+        if (empty($validatedData['jumlah_bayar'])) {
+            return redirect()
+                ->route('pesanan.belum-lunas')
+                ->with('info', 'Kembali ke halaman pesanan belum lunas.');
+        }
 
         try {
             DB::beginTransaction();
@@ -249,23 +476,53 @@ class PesananController extends Controller
             $user->tagihan = max(0, $user->tagihan - $jumlah_bayar);
             $user->save();
 
-            // Update invoice
+            // Update invoice - hitung tagihan sisa dari invoice ini
+            $tagihan_sisa_invoice = max(0, $invoice->tagihan_sisa - $jumlah_bayar);
+            
             $invoice->update([
-                'jumlah_bayar' => $jumlah_bayar,
-                'tagihan_sisa' => $user->tagihan
+                'jumlah_bayar' => ($invoice->jumlah_bayar ?? 0) + $jumlah_bayar,
+                'tagihan_sisa' => $tagihan_sisa_invoice,
+                'payment_deadline' => $tagihan_sisa_invoice == 0 ? null : $invoice->payment_deadline
             ]);
 
             DB::commit();
 
-            return redirect()
-                ->route('invoice.index')
-                ->with('success', 'Pembayaran berhasil diproses!');
+            \Log::info('Payment processed', [
+                'invoice_id' => $invoice->id,
+                'jumlah_bayar' => $jumlah_bayar,
+                'tagihan_sisa' => $tagihan_sisa_invoice,
+                'redirect_to' => $tagihan_sisa_invoice == 0 ? 'lunas' : 'belum-lunas'
+            ]);
+
+            // Calculate kembalian if overpaid
+            $kembalian = max(0, $jumlah_bayar - $invoice->tagihan_sisa);
+
+            // Redirect ke halaman yang sesuai berdasarkan status pembayaran invoice ini
+            if ($tagihan_sisa_invoice == 0) {
+                if ($kembalian > 0) {
+                    return redirect()
+                        ->route('pesanan.lunas')
+                        ->with('success', 'Pembayaran berhasil diproses! Invoice sudah lunas. Kembalian: Rp ' . number_format($kembalian, 0, ',', '.'));
+                } else {
+                    return redirect()
+                        ->route('pesanan.lunas')
+                        ->with('success', 'Pembayaran berhasil diproses! Invoice sudah lunas.');
+                }
+            } else {
+                return redirect()
+                    ->route('pesanan.belum-lunas')
+                    ->with('success', 'Pembayaran Rp ' . number_format($jumlah_bayar, 0, ',', '.') . ' berhasil diproses! Sisa tagihan: Rp ' . number_format($tagihan_sisa_invoice, 0, ',', '.'));
+            }
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Payment processing failed', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage()
+            ]);
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan saat memproses pembayaran!');
+                ->with('error', 'Terjadi kesalahan saat memproses pembayaran: ' . $e->getMessage());
         }
     }
 
@@ -434,6 +691,12 @@ class PesananController extends Controller
         $invoice->customer_id = $customer_id;
         $invoice->invoice = 'IVC-' . date('Ymd') . '-' . str_pad($todayInvoiceCount + 1, 3, '0', STR_PAD_LEFT);
         $invoice->tagihan_sebelumnya = User::find($customer_id)->tagihan ?? 0;
+        
+        // Set payment deadline based on company settings
+        $companySetting = \App\Models\CompanySetting::getInstance();
+        $autoDeleteDays = $companySetting->unpaid_order_auto_delete_days ?? 30;
+        $invoice->payment_deadline = now()->addDays($autoDeleteDays);
+        
         $invoice->save();
 
         return $invoice;
@@ -593,11 +856,9 @@ class PesananController extends Controller
     {
         $user = $invoice->user;
         
-        // Subtract the invoice total from customer's bill
-        $user->tagihan -= $invoice->sub_total;
-        
-        // Add back any payments made
-        $user->tagihan += $invoice->jumlah_bayar ?? 0;
+        // Only subtract the remaining unpaid balance (tagihan_sisa)
+        // Because payment already reduced customer tagihan when it was made
+        $user->tagihan -= $invoice->tagihan_sisa;
         
         // Ensure bill doesn't go negative
         $user->tagihan = max(0, $user->tagihan);

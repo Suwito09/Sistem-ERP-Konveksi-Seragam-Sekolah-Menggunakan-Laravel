@@ -93,6 +93,14 @@
                                         <div style="text-align: center; font-size: 13px;">Sales</div>
                                     </td>
                                 @endcan
+                                @can('list_admin', App\Models\User::class)
+                                    <td>
+                                        <x-dropdown-link href="{{ route('company-settings.index') }}">
+                                            <i class="fa-solid fa-building fa-2x ikon"></i>
+                                        </x-dropdown-link>
+                                        <div style="text-align: center; font-size: 13px;">Pengaturan</div>
+                                    </td>
+                                @endcan
                             </tr>
                         </tbody>
                     </table>

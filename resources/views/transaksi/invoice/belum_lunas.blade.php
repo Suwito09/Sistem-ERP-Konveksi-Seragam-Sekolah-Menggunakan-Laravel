@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Pesanan List
+            Pesanan Belum Lunas
         </h2>
     </x-slot>
 
@@ -45,7 +45,7 @@
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Semua Pesanan</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ number_format($invoices->total()) }}</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ number_format($total_semua ?? 0) }}</p>
                         </div>
                     </div>
                 </a>
@@ -69,7 +69,7 @@
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Pesanan Belum Lunas</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ number_format($total_belum_lunas ?? 0) }}</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ number_format($invoices->total()) }}</p>
                         </div>
                     </div>
                 </a>
@@ -181,6 +181,7 @@
                                         'customer' => 'Customer',
                                         'sub_total' => 'Total Transaksi',
                                         'created_at' => 'Tanggal',
+                                        'payment_deadline' => 'Batas Pembayaran',
                                     ];
                                 @endphp
                                 @foreach($columns as $field => $label)
@@ -219,6 +220,38 @@
                                 </td>
                                 <td class="px-4 py-3 text-left" style="max-width: 400px" data-label="Tanggal">
                                     {{ $invoice->created_at ?? '-'}}
+                                </td>
+                                <td class="px-4 py-3 text-left" style="max-width: 400px" data-label="Batas Pembayaran">
+                                    @if($invoice->payment_deadline)
+                                        @php
+                                            $deadline = \Carbon\Carbon::parse($invoice->payment_deadline);
+                                            $now = \Carbon\Carbon::now();
+                                            $daysRemaining = $now->diffInDays($deadline, false);
+                                        @endphp
+                                        
+                                        <div class="flex flex-col">
+                                            <span>{{ $deadline->format('d/m/Y H:i') }}</span>
+                                            @if($daysRemaining < 0)
+                                                <span class="text-xs text-red-600 font-semibold">
+                                                    <i class="icon ion-md-alert"></i> Expired {{ abs($daysRemaining) }} hari lalu
+                                                </span>
+                                            @elseif($daysRemaining == 0)
+                                                <span class="text-xs text-orange-600 font-semibold">
+                                                    <i class="icon ion-md-warning"></i> Hari ini
+                                                </span>
+                                            @elseif($daysRemaining <= 3)
+                                                <span class="text-xs text-orange-500">
+                                                    <i class="icon ion-md-time"></i> {{ $daysRemaining }} hari lagi
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-gray-500">
+                                                    {{ $daysRemaining }} hari lagi
+                                                </span>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-gray-400">-</span>
+                                    @endif
                                 </td>
                                 
                                 <td class="px-4 py-3 text-center" style="width: 134px;" data-label="Aksi">

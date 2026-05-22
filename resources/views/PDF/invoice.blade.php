@@ -68,9 +68,33 @@
             max-width: 50px;
             height: auto;
         }
+        .stamp-lunas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            border: 3px solid #28a745;
+            color: #28a745;
+            font-size: 32px;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 10px;
+            opacity: 0.3;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            pointer-events: none;
+        }
+        .invoice-container {
+            position: relative;
+        }
     </style>
 </head>
 <body>
+    <div class="invoice-container">
+        @if($invoice->tagihan_sisa == 0)
+            <div class="stamp-lunas">LUNAS</div>
+        @endif
+        
     @php
         // Optimasi: hitung total di PHP untuk mengurangi loop
         $total_subtotal = 0;
@@ -152,10 +176,20 @@
             <span>Sisa Tagihan:</span>
             <span>Rp {{ number_format($invoice->tagihan_sisa ?? 0, 0, ',', '.') }}</span>
         </div>
+        @php
+            $kembalian = ($invoice->jumlah_bayar ?? 0) - ($invoice->tagihan_total ?? 0);
+        @endphp
+        @if($kembalian > 0)
+        <div class="total-row" style="font-weight:bold; color:#28a745; border-top:1px solid #28a745; margin-top:3px; padding-top:3px;">
+            <span>KEMBALIAN:</span>
+            <span>Rp {{ number_format($kembalian, 0, ',', '.') }}</span>
+        </div>
+        @endif
     </div>
 
     <div style="text-align:center; margin-top:10px; font-size:7px; border-top:1px dashed #000; padding-top:5px;">
         Terima Kasih
+    </div>
     </div>
 </body>
 </html>

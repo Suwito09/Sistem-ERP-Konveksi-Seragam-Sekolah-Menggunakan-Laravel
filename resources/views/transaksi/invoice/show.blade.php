@@ -166,6 +166,34 @@
                 font-size: 14px !important;
             }
         }
+        
+        /* Stempel LUNAS */
+        .invoice-wrapper {
+            position: relative;
+        }
+        .stamp-lunas {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            border: 5px solid #28a745;
+            color: #28a745;
+            font-size: 80px;
+            font-weight: bold;
+            padding: 20px 40px;
+            border-radius: 15px;
+            opacity: 0.2;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        @media print {
+            .stamp-lunas {
+                opacity: 0.3;
+            }
+        }
     </style>
 
     <div class="bg">
@@ -189,6 +217,11 @@
                                         {{ __('Back to Index') }}
                                     </a>
 
+                                    <a href="{{ route('pesanan.invoice_print', $invoice) }}" target="_blank" class="button mr-1" style="background-color: #1e7e34; color: white; transition: background-color 0.3s, color 0.3s;" onmouseover="this.style.backgroundColor='#155724'; this.style.color='white';" onmouseout="this.style.backgroundColor='#1e7e34'; this.style.color='white';">
+                                        <i class="mr-1 icon ion-md-print"></i>
+                                        Print Invoice
+                                    </a>
+
                                     <a href="{{ route('pesanan.invoice_pdf', $invoice) }}" class="button" style="background-color: #800000; color: white; transition: background-color 0.3s, color 0.3s;" onmouseover="this.style.backgroundColor='#700000'; this.style.color='white';" onmouseout="this.style.backgroundColor='#800000'; this.style.color='white';">
                                         <i class="mr-1 icon ion-md-download"></i>
                                         Ekspor PDF
@@ -198,6 +231,11 @@
                         </div>
 
                         <div class="container px-0">
+                            <div class="invoice-wrapper">
+                                @if($invoice->tagihan_sisa == 0)
+                                    <div class="stamp-lunas">LUNAS</div>
+                                @endif
+                                
                             <div class="row mt-4">
                                 <div class="col-12 col-lg-12">
                                     <div class="row">
@@ -342,8 +380,28 @@
                                             </div>
                                         </div>
 
+                                        @php
+                                            $kembalian = ($invoice->jumlah_bayar ?? 0) - ($invoice->tagihan_total ?? 0);
+                                        @endphp
+                                        @if($kembalian > 0)
+                                        <div class="row mt-1">
+                                            <div class="col-12 text-120">
+                                                    <div class="row my-2">
+                                                        <div class="col-10 text-right">
+                                                            <strong>Kembalian</strong>
+                                                        </div>
+                                                        <div class="col-2">
+                                                            <span class="text-success" style="font-weight: bold;">Rp {{ number_format($kembalian, 0, ',', '.') }}</span>
+                                                        </div>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                        @endif
+
                                     </div>
                                 </div>
+                            </div>
                             </div>
                         </div>
                     </div>

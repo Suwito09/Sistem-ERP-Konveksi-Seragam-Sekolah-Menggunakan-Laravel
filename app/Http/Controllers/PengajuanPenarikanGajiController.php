@@ -196,9 +196,12 @@ class PengajuanPenarikanGajiController extends Controller
 
         $dynamicHeight = $baseHeight + $employeeInfoHeight + $tableHeaderHeight + ($itemCount * $itemHeight) + $totalHeight + $signatureHeight + $bottomMargin;
 
+        // Get company settings
+        $companySetting = \App\Models\CompanySetting::getInstance();
+
         $pdf = createPdfWithOptions(
             'PDF.slip_gaji',
-            compact('penarikan_gaji', 'detail_gaji_pegawais'),
+            compact('penarikan_gaji', 'detail_gaji_pegawais', 'companySetting'),
             [80, $dynamicHeight], // width 80mm, height dinamis
             'portrait'
         );
@@ -234,6 +237,9 @@ class PengajuanPenarikanGajiController extends Controller
             ->groupBy('pekerjaans.id', 'pekerjaans.nama_pekerjaan', 'pekerjaans.gaji_per_pekerjaan')
             ->get();
 
-        return view('print.slip_gaji', compact('penarikan_gaji', 'detail_gaji_pegawais'));
+        // Get company settings
+        $companySetting = \App\Models\CompanySetting::getInstance();
+
+        return view('print.slip_gaji', compact('penarikan_gaji', 'detail_gaji_pegawais', 'companySetting'));
     }
 }

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Pesanan List
+            Pesanan Lunas
         </h2>
     </x-slot>
 
@@ -45,7 +45,7 @@
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Semua Pesanan</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ number_format($invoices->total()) }}</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ number_format($total_semua ?? 0) }}</p>
                         </div>
                     </div>
                 </a>
@@ -57,7 +57,7 @@
                         </div>
                         <div class="ml-4">
                             <p class="text-sm font-medium text-gray-500">Pesanan Lunas</p>
-                            <p class="text-2xl font-bold text-gray-900">{{ number_format($total_lunas ?? 0) }}</p>
+                            <p class="text-2xl font-bold text-gray-900">{{ number_format($invoices->total()) }}</p>
                         </div>
                     </div>
                 </a>
@@ -232,13 +232,14 @@
                                             </a>
                                         @endcan 
 
-                                        @can('update', $invoice)
-                                            <a href="{{ route('invoice.edit', $invoice) }}" class="mr-1">
-                                                <button type="button" class="button">
-                                                    <i class="icon ion-md-create "></i>
-                                                </button>
-                                            </a>
-                                        @endcan
+                                        {{-- Print button for paid invoices --}}
+                                        <a href="{{ route('pesanan.invoice_print', $invoice) }}" target="_blank" class="mr-1">
+                                            <button type="button" class="button" style="background-color: #1e7e34; color: white;" title="Print Invoice">
+                                                <i class="icon ion-md-print"></i>
+                                            </button>
+                                        </a>
+
+                                        {{-- Edit button removed: Paid invoices should be read-only for data integrity --}}
 
                                         @can('delete', $invoice)
                                             <form id="deleteForm{{ $invoice->id }}" action="{{ route('invoice.destroy', $invoice->id) }}" method="POST">

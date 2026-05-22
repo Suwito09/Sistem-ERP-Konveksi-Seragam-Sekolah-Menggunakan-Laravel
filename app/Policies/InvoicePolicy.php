@@ -28,6 +28,11 @@ class InvoicePolicy
 
     public function update(User $user, Invoice $model): bool
     {
+        // Prevent editing paid invoices for data integrity
+        if ($model->tagihan_sisa == 0) {
+            return false;
+        }
+        
         return $user->hasPermissionTo('update pesanan');
     }
 

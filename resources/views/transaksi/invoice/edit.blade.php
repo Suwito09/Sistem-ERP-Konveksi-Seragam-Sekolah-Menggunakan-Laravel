@@ -190,6 +190,28 @@
                 <x-partials.card>
                     <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet" />
 
+                    @if(session('success'))
+                        <div class="alert alert-success mb-4" style="background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 12px; border-radius: 4px;">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+
+                    @if(session('error'))
+                        <div class="alert alert-danger mb-4" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px;">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+
+                    @if($errors->any())
+                        <div class="alert alert-danger mb-4" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 12px; border-radius: 4px;">
+                            <ul style="margin: 0; padding-left: 20px;">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
+
                     <div class="page-content container">
                         <div class="page-header text-blue-d2">
                             <h1 class="page-title text-secondary-d1">
@@ -290,45 +312,80 @@
 
                                         <div class="row mt-3">
                                             <div class="col-12 text-120">
-                                                    <div class="row my-2">
-                                                        <div class="col-10 text-right">
-                                                            Tagihan Sebelumnya
-                                                        </div>
-                                                        <div class="col-2">
-                                                            <span class="text-secondary-d1">Rp {{ number_format($invoice->tagihan_sebelumnya, 0, ',', '.') }}</span>
-                                                        </div>
+                                                <div class="row my-2">
+                                                    <div class="col-10 text-right">
+                                                        Tagihan Sebelumnya
                                                     </div>
-                                                </form>
+                                                    <div class="col-2">
+                                                        <span class="text-secondary-d1">Rp {{ number_format($invoice->tagihan_sebelumnya, 0, ',', '.') }}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div class="row mt-1">
                                             <div class="col-12 text-120">
-                                                    <div class="row my-2">
-                                                        <div class="col-10 text-right">
-                                                            Sub Total
-                                                        </div>
-                                                        <div class="col-2">
-                                                            <span class="text-secondary-d1">Rp {{ number_format($invoice->tagihan_total, 0, ',', '.') }}</span>
-                                                        </div>
+                                                <div class="row my-2">
+                                                    <div class="col-10 text-right">
+                                                        Sub Total
                                                     </div>
-                                                </form>
+                                                    <div class="col-2">
+                                                        <span class="text-secondary-d1" id="subTotalDisplay">Rp {{ number_format($invoice->tagihan_total, 0, ',', '.') }}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <div class="row mt-1">
                                             <div class="col-12 text-120">
-                                                <form action="{{ route('invoice.update', $invoice) }}" method="POST">
+                                                @if ($errors->any())
+                                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                                        <strong>Error!</strong>
+                                                        <ul class="mb-0">
+                                                            @foreach ($errors->all() as $error)
+                                                                <li>{{ $error }}</li>
+                                                            @endforeach
+                                                        </ul>
+                                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                @endif
+                                                <form action="{{ route('invoice.update', $invoice) }}" method="POST" id="paymentForm">
                                                     @csrf
                                                     @method('PUT')
                                                     <div class="row my-2">
                                                         <div class="col-12 col-sm-10 text-sm-right">
-                                                            <label for="jumlah_bayar">Jumlah Bayar</label>
+                                                            <label for="jumlah_bayar">Jumlah Bayar <small class="text-muted">(opsional)</small></label>
                                                         </div>
                                                         <div class="col-12 col-sm-2">
-                                                            <input type="number" name="jumlah_bayar" id="jumlah_bayar" class="form-control" placeholder="Masukkan jumlah">
+                                                            <input type="number" name="jumlah_bayar" id="jumlah_bayar" class="form-control @error('jumlah_bayar') is-invalid @enderror" placeholder="Kosongkan jika belum bayar" min="1" value="{{ old('jumlah_bayar') }}">
+                                                            @error('jumlah_bayar')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
                                                         </div>
                                                     </div>
+
+                                                    <!-- Sisa Tagihan Setelah Bayar (Live Update) -->
+                                                    <div class="row my-2" id="sisaTagihanRow" style="display:none;">
+                                                        <div class="col-12 col-sm-10 text-sm-right">
+                                                            <strong>Sisa Tagihan:</strong>
+                                                        </div>
+                                                        <div class="col-12 col-sm-2">
+                                                            <span class="text-danger" style="font-weight: bold; font-size: 14px;" id="sisaTagihanDisplay">Rp 0</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Kembalian (Live Update) -->
+                                                    <div class="row my-2" id="kembalianRow" style="display:none;">
+                                                        <div class="col-12 col-sm-10 text-sm-right">
+                                                            <strong style="color: #28a745;">Kembalian:</strong>
+                                                        </div>
+                                                        <div class="col-12 col-sm-2">
+                                                            <span class="text-success" style="font-weight: bold; font-size: 14px;" id="kembalianDisplay">Rp 0</span>
+                                                        </div>
+                                                    </div>
+
                                                     <div class="row my-2">
                                                         <div class="col-12 text-center">
                                                             <button
@@ -366,4 +423,87 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        const subTotalAwal = {{ $invoice->tagihan_total ?? 0 }};
+        const jumlahBayarInput = document.getElementById('jumlah_bayar');
+        const subTotalDisplay = document.getElementById('subTotalDisplay');
+        const sisaTagihanRow = document.getElementById('sisaTagihanRow');
+        const sisaTagihanDisplay = document.getElementById('sisaTagihanDisplay');
+        const kembalianRow = document.getElementById('kembalianRow');
+        const kembalianDisplay = document.getElementById('kembalianDisplay');
+
+        // Format number to Indonesian Rupiah
+        function formatRupiah(angka) {
+            return 'Rp ' + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // Update sub total dan sisa tagihan real-time
+        jumlahBayarInput.addEventListener('input', function() {
+            const jumlahBayar = parseFloat(this.value) || 0;
+            
+            if (jumlahBayar > 0) {
+                const sisa = subTotalAwal - jumlahBayar;
+                
+                // Update Sub Total display (berkurang sesuai pembayaran)
+                if (sisa >= 0) {
+                    subTotalDisplay.textContent = formatRupiah(sisa);
+                    subTotalDisplay.style.color = '#800000';
+                    subTotalDisplay.style.fontWeight = 'bold';
+                } else {
+                    // Jika bayar lebih, sub total jadi 0
+                    subTotalDisplay.textContent = 'Rp 0';
+                    subTotalDisplay.style.color = '#28a745';
+                    subTotalDisplay.style.fontWeight = 'bold';
+                }
+                
+                if (sisa > 0) {
+                    // Masih ada sisa tagihan
+                    sisaTagihanDisplay.textContent = formatRupiah(sisa);
+                    sisaTagihanRow.style.display = 'flex';
+                    kembalianRow.style.display = 'none';
+                } else if (sisa < 0) {
+                    // Ada kembalian (bayar lebih)
+                    const kembalian = Math.abs(sisa);
+                    kembalianDisplay.textContent = formatRupiah(kembalian);
+                    kembalianRow.style.display = 'flex';
+                    sisaTagihanRow.style.display = 'none';
+                } else {
+                    // Pas lunas
+                    sisaTagihanRow.style.display = 'none';
+                    kembalianRow.style.display = 'none';
+                }
+            } else {
+                // Input kosong, kembalikan ke nilai awal
+                subTotalDisplay.textContent = formatRupiah(subTotalAwal);
+                subTotalDisplay.style.color = '';
+                subTotalDisplay.style.fontWeight = '';
+                sisaTagihanRow.style.display = 'none';
+                kembalianRow.style.display = 'none';
+            }
+        });
+
+        // Form validation
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            const jumlahBayar = jumlahBayarInput.value;
+            
+            console.log('Form submitting...', {
+                jumlah_bayar: jumlahBayar || 'kosong (tidak bayar)',
+                action: this.action,
+                method: this.method
+            });
+            
+            // Validasi hanya jika user mengisi jumlah bayar
+            if (jumlahBayar && jumlahBayar < 1) {
+                e.preventDefault();
+                alert('Jumlah bayar minimal Rp 1!');
+                console.error('Validation failed: Jumlah bayar tidak valid');
+                return false;
+            }
+            
+            console.log('Form validation passed, submitting...');
+        });
+    </script>
+    @endpush
 </x-app-layout>

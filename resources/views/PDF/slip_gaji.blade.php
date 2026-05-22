@@ -112,13 +112,19 @@
         $tanggal_mulai = $gaji_pegawai->terhitung_tanggal ?? $penarikan_gaji->mulai_tanggal ?? now();
         $tanggal_akhir = $penarikan_gaji->akhir_tanggal ?? now();
         $total_gaji_value = $gaji_pegawai->total_gaji_yang_bisa_diajukan ?? $penarikan_gaji->gaji_yang_diajukan ?? 0;
+        
+        // Get company settings
+        $companySetting = $companySetting ?? \App\Models\CompanySetting::getInstance();
     @endphp
 
     <div class="header">
-        @if(file_exists(public_path('favicon.png')))
+        @if($companySetting->logo_full_path && file_exists($companySetting->logo_full_path))
+        <img src="{{ $companySetting->logo_full_path }}" alt="Logo" class="logo">
+        @elseif(file_exists(public_path('favicon.png')))
         <img src="{{ public_path('favicon.png') }}" alt="Logo" class="logo">
         @endif
         <div style="font-weight:bold; font-size:9px; margin-top:1px;">SLIP GAJI</div>
+        <div style="font-size:6px; margin-top:1px;">{{ $companySetting->company_name }}</div>
         <div style="font-size:5px;">{{ date('d/m/Y', strtotime($tanggal_mulai)) }} - {{ date('d/m/Y', strtotime($tanggal_akhir)) }}</div>
     </div>
 
@@ -171,13 +177,24 @@
         <div style="border-top:1px dashed #000; padding-top:4px; margin-top:4px;">
             <div class="signature-box">
                 <div style="margin-bottom:1px; font-size:5px;">Mengetahui,</div>
-                @if(file_exists(public_path('images/ttd.png')))
+                
+                {{-- Tanda Tangan dari Company Settings --}}
+                @if($companySetting->signature_full_path && file_exists($companySetting->signature_full_path))
+                <img src="{{ $companySetting->signature_full_path }}" alt="TTD" class="ttd">
+                @elseif(file_exists(public_path('images/ttd.png')))
                 <img src="{{ public_path('images/ttd.png') }}" alt="TTD" class="ttd">
                 @else
                 <div style="height:30px; margin:2px 0;"></div>
                 @endif
+                
+                {{-- Stempel dari Company Settings --}}
+                @if($companySetting->stamp_full_path && file_exists($companySetting->stamp_full_path))
+                <img src="{{ $companySetting->stamp_full_path }}" alt="Stempel" style="max-width: 35px; height: auto; margin: 2px 0;">
+                @endif
+                
                 <div style="border-top:1px solid #000; padding-top:1px; font-weight:bold; font-size:5px;">
-                    Owner/Pimpinan
+                    {{ $companySetting->owner_name }}<br>
+                    <span style="font-weight:normal; font-size:4px;">{{ $companySetting->owner_position }}</span>
                 </div>
             </div>
         </div>

@@ -122,9 +122,12 @@ class GajiSemuaPegawaiController extends Controller
             $itemCount = $detail_gaji_pegawais->count();
             $dynamicHeight = 18 + 10 + 5 + ($itemCount * 4) + 12 + 20 + 5;
             
+            // Get company settings
+            $companySetting = \App\Models\CompanySetting::getInstance();
+            
             $pdf = createPdfWithOptions(
                 'PDF.slip_gaji', 
-                compact('gaji_pegawai', 'detail_gaji_pegawais'),
+                compact('gaji_pegawai', 'detail_gaji_pegawais', 'companySetting'),
                 [80, $dynamicHeight]
             );
 
